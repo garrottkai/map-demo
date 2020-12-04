@@ -1,7 +1,8 @@
 import actions from './constants';
 
 const initialState = {
-  history: []
+  history: [],
+  activePoints: []
 };
 
 export default function reducer(state = initialState, action) {
@@ -19,6 +20,19 @@ export default function reducer(state = initialState, action) {
         ...state,
         history: []
       };
+    case actions.ADD_ACTIVE_POINTS:
+      return {
+        ...state,
+        activePoints: [
+          ...state.activePoints,
+          ...action.payload
+        ]
+      }
+    case actions.CLEAR_ACTIVE_POINTS:
+      return {
+        ...state,
+        activePoints: []
+      }
     default:
       return state;
   }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -15,7 +15,7 @@ import {
 import { connect } from 'react-redux';
 import Ionicon from 'react-native-vector-icons/Ionicons';
 import actions from '../store/constants';
-import MapView, { PROVIDER_GOOGLE } from 'react-native-maps'
+import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps'
 import { debounce } from 'lodash';
 import Config from 'react-native-config';
 
@@ -48,7 +48,8 @@ const InputBox = ({
   onChangeTo,
   from,
   onChangeFrom,
-  onSwapInputs
+  onSwapInputs,
+  onEnter
 }) => {
   return (
     <View style={styles.inputBox}>
@@ -69,7 +70,7 @@ const InputBox = ({
         <TouchableOpacity style={styles.swap} onPress={onSwapInputs}>
           <Ionicon name='swap-vertical' size={30} color='#000000' />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.enter}>
+        <TouchableOpacity style={styles.enter} onPress={onEnter}>
           <Ionicon name='arrow-forward' size={35} color='#ffffff' />
         </TouchableOpacity>
       </View>
@@ -105,12 +106,18 @@ const Suggestions = ({
 };
 
 const Map = ({
-  createHistoryItem
+  createHistoryItem,
+  addActivePoints,
+  clearActivePoints,
+  activePoints
 }) => {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [fromID, setFromID] = useState('');
+  const [toID, setToID] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [active, setActive] = useState('from');
+  const map = useRef();
   const search = async query => {
     const apiKey = Config.MAPS_API_KEY;
     const input = encodeURIComponent(query);
@@ -130,16 +137,19 @@ const Map = ({
   const handleSuggestionPress = suggestion => {
     if (active === 'to') {
       setTo(suggestion.description);
+      setToID(suggestion.place_id);
     } else {
       setFrom(suggestion.description);
+      setFromID(suggestion.place_id);
     }
     setSuggestions([]);
   }
   const handleEnter = () => {
-    createHistoryItem({
-      to,
-      from
-    });
+    fetchDirections(fromID, toID);
+    // createHistoryItem({
+    //   to,
+    //   from
+    // });
   }
 
   const fetchDirections = async (origin, destination) => {
@@ -148,7 +158,38 @@ const Map = ({
     const res = await fetch(url);
     const json = await res.json();
       console.log(json)
-    if (res.status === 200 && json?.routes) {
+    if (res.status === 200 && json?.routes?.[0]?.legs?.length) {
+      const route = json.routes[0].legs[0];
+      const startCoordinates = {
+        latitude: route.start_location.lat,
+        longitude: route.start_location.lng
+      };
+      const endCoordinates = {
+        latitude: route.end_location.lat,
+        longitude: route.end_location.lng
+      };
+      createHistoryItem({
+        from: {
+          description: from,
+          placeId: fromID,
+          coordinates: startCoordinates
+        },
+        to: {
+          description: to,
+          placeId: toID,
+          coordinates: endCoordinates
+        },
+        duration: route.duration.text,
+        distance: route.distance.text
+      });
+      if (activePoints.length) {
+        clearActivePoints();
+      }
+      addActivePoints([
+        { description: from, coordinates: startCoordinates },
+        { description: to, coordinates: endCoordinates }
+      ]);
+      map.current.fitToElements(true);
     }
   }
 
@@ -168,6 +209,7 @@ const Map = ({
     <SafeAreaView style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <MapView
+          ref={map}
           provider={PROVIDER_GOOGLE}
           style={styles.map}
           initialRegion={{
@@ -175,8 +217,15 @@ const Map = ({
             longitude: -106.62,
             latitudeDelta: 0.2,
             longitudeDelta: 0.08,
-          }}
-        />
+          }}>
+          { activePoints.map(({ coordinates, description }) => {
+            console.log(coordinates, description)
+            return <Marker
+              coordinate={coordinates}
+              title={description}
+            />;
+          })}
+        </MapView>
       </TouchableWithoutFeedback>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -194,6 +243,7 @@ const Map = ({
               onChangeTo={handleToChange}
               onChangeFrom={handleFromChange}
               onSwapInputs={handleSwapInputs}
+              onEnter={handleEnter}
             />
           </View>
         </View>
@@ -284,19 +334,27 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-      width: '100%',
-      backgroundColor: '#ffffff'
+    width: '100%',
+    backgroundColor: '#ffffff'
   }
 });
 
 const mapStateToProps = state => ({
-  history: state.history
+  history: state.history,
+  activePoints: state.activePoints
 });
 
 const mapDispatchToProps = dispatch => ({
   createHistoryItem: item => dispatch({
     type: actions.CREATE_HISTORY_ITEM,
     payload: item
+  }),
+  addActivePoints: points => dispatch({
+    type: actions.ADD_ACTIVE_POINTS,
+    payload: points
+  }),
+  clearActivePoints: () => dispatch({
+    type: actions.CLEAR_ACTIVE_POINTS
   })
 });
 
