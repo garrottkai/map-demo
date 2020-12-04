@@ -5,6 +5,8 @@ import {
   View,
   TextInput,
   TouchableOpacity,
+  FlatList,
+  Text
 } from 'react-native';
 import { connect } from 'react-redux';
 import Ionicon from 'react-native-vector-icons/Ionicons';
@@ -15,7 +17,7 @@ import { debounce } from 'lodash';
 const Input = ({
   placeholder,
   value,
-  setValue,
+  onChangeText,
   style
 }) => {
   const [focused, setFocused] = useState(false);
@@ -23,7 +25,7 @@ const Input = ({
     <TextInput
       value={value}
       placeholder={placeholder}
-      onChangeText={setValue}
+      onChangeText={onChangeText}
       selectTextOnFocus
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
@@ -48,13 +50,13 @@ const InputBox = ({
       <View style={styles.inputs}>
         <Input
           value={from}
-          setValue={setFrom}
+          onChangeText={setFrom}
           placeholder='From...'
           style={styles.topInput}
         />
         <Input
           value={to}
-          setValue={setTo}
+          onChangeText={setTo}
           placeholder='To...'
         />
       </View>
@@ -70,16 +72,57 @@ const InputBox = ({
   );
 };
 
+const Suggestions = ({
+  data,
+  onPress
+}) => {
+  const renderItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.suggItem}
+      onPress={onPress}>
+      <Text style={styles.suggText} numberOfLines={1}>
+        {item.description}
+      </Text>
+    </TouchableOpacity>
+  );
+  const Separator = () => (
+    <View style={styles.separator} />
+  );
+  return (
+    <FlatList
+      style={styles.sugg}
+      contentContainerStyle={styles.suggContainer}
+      data={data}
+      renderItem={renderItem}
+      ItemSeparatorComponent={Separator}
+    />
+  );
+};
+
 const Map = ({
   createHistoryItem
 }) => {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [suggestions, setSuggestions] = useState([{
+    description: "foo asdfafsasdf asdfasdf asfd asdfasdf asdfaf fffffff"
+  },{
+    description: "foo"
+  },{
+    description: "foo"
+  },{
+    description: "foo"
+  },{
+    description: "foo"
+  }]);
   const handleSwapInputs = () => {
     const oldTo = to;
     setTo(from);
     setFrom(oldTo);
   };
+  const handleSuggestionPress = suggestion => {
+
+  }
   const handleEnter = () => {
     createHistoryItem({
       to,
@@ -98,13 +141,21 @@ const Map = ({
           longitudeDelta: 0.08,
         }}
       />
-      <InputBox
-        to={to}
-        from={from}
-        setTo={setTo}
-        setFrom={setFrom}
-        onSwapInputs={handleSwapInputs}
-      />
+      <View style={styles.overlay}>
+        { !!suggestions.length &&
+          <Suggestions
+            data={suggestions}
+            onPress={handleSuggestionPress}
+          />
+        }
+        <InputBox
+          to={to}
+          from={from}
+          setTo={setTo}
+          setFrom={setFrom}
+          onSwapInputs={handleSwapInputs}
+        />
+      </View>
     </SafeAreaView>
   );
 };
@@ -116,12 +167,15 @@ const styles = StyleSheet.create({
   map: {
     flex: 1
   },
-  inputBox: {
-    flexDirection: 'row',
+  overlay: {
     position: 'absolute',
     bottom: 8,
     left: 8,
     right: 8,
+
+  },
+  inputBox: {
+    flexDirection: 'row',
     backgroundColor: '#ffffff',
     borderRadius: 4,
     paddingVertical: 15,
@@ -151,7 +205,6 @@ const styles = StyleSheet.create({
   },
   swap: {
     paddingVertical: 2,
-    //paddingHorizontal: 7,
     width: 53,
     alignItems: 'center',
     borderRadius: 4,
@@ -160,13 +213,35 @@ const styles = StyleSheet.create({
   },
   enter: {
     paddingVertical: 5,
-    //paddingHorizontal: 7,
     width: 53,
     alignItems: 'center',
     borderRadius: 4,
     borderColor: '#00000033',
     borderWidth: 1,
     backgroundColor: '#0080FF'
+  },
+  sugg: {
+    flexDirection: 'row',
+    backgroundColor: '#000000C0',
+    borderRadius: 4,
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    marginBottom: 8
+  },
+  suggContainer: {
+    width: '100%'
+  },
+  suggItem: {
+    paddingVertical: 12,
+  },
+  suggText: {
+    color: '#ffffff',
+    fontSize: 18
+  },
+  separator: {
+    height: 1,
+      width: '100%',
+      backgroundColor: '#ffffff'
   }
 });
 
