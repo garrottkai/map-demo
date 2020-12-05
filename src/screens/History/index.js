@@ -8,12 +8,13 @@ import {
   Text
 } from 'react-native';
 import { connect } from 'react-redux';
-import actions from '../store/constants';
+import actions from '../../store/constants';
+import Ionicon from 'react-native-vector-icons/Ionicons';
 
-const renderItem = ({ from, to, duration, distance }, onPress) => (
-  <TouchableOpacity
-    onPress={onPress}
-    style={styles.listItem}>
+const renderItem = ({
+ item: { from, to, duration, distance }
+}) => (
+  <View style={styles.listItem}>
     <Text style={styles.location} numberOfLines={1}>
       {from.description}
     </Text>
@@ -25,17 +26,13 @@ const renderItem = ({ from, to, duration, distance }, onPress) => (
         {distance}, {duration}
       </Text>
     </View>
-  </TouchableOpacity>
+  </View>
 );
 
 const History = ({
   history,
   deleteHistory
 }) => {
-
-  const handleItemPress = () => {
-
-  };
 
   const Separator = () => (
     <View style={styles.separator} />
@@ -46,9 +43,19 @@ const History = ({
       <FlatList
         contentContainerStyle={styles.listContainer}
         data={history}
-        renderItem={({ item }) => renderItem(item, handleItemPress)}
+        renderItem={renderItem}
         ItemSeparatorComponent={Separator}
+        keyExtractor={item => `${item.from.placeId}-${item.to.placeId}`}
       />
+      <TouchableOpacity
+        disabled={!history.length}
+        style={{
+          ...styles.delete,
+          ...!history.length && styles.disabled
+        }}
+        onPress={deleteHistory}>
+        <Ionicon name='trash' size={35} color='#ffffff' />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -77,6 +84,20 @@ const styles = StyleSheet.create({
   },
   quantities: {
     fontSize: 14
+  },
+  delete: {
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    margin: 20,
+    alignItems: 'center',
+    borderRadius: 4,
+    borderColor: '#00000033',
+    borderWidth: 1,
+    backgroundColor: '#ff1030'
+  },
+  disabled: {
+    backgroundColor: '#ff103044'
   }
 });
 
