@@ -23,7 +23,7 @@ const Suggestions = ({
   const Separator = () => (
     <View style={styles.separator} />
   );
-  return (
+  return data.length ? (
     <FlatList
       keyboardShouldPersistTaps='always'
       style={styles.sugg}
@@ -33,7 +33,7 @@ const Suggestions = ({
       ItemSeparatorComponent={Separator}
       keyExtractor={item => item.place_id}
     />
-  );
+  ) : null;
 };
 
 const styles = StyleSheet.create({

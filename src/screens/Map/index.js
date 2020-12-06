@@ -17,6 +17,11 @@ import Config from 'react-native-config';
 import Suggestions from './Suggestions';
 import InputBox from './InputBox';
 
+const inputTypes = {
+  TO: 'TO',
+  FROM: 'FROM'
+};
+
 const Map = ({
   createHistoryItem,
   addActivePoints,
@@ -29,7 +34,7 @@ const Map = ({
   const [fromID, setFromID] = useState('');
   const [toID, setToID] = useState('');
   const [suggestions, setSuggestions] = useState([]);
-  const [active, setActive] = useState('from');
+  const [active, setActive] = useState(inputTypes.FROM);
   const map = useRef();
 
   const search = async query => {
@@ -54,7 +59,7 @@ const Map = ({
   };
 
   const handleSuggestionPress = suggestion => {
-    if (active === 'to') {
+    if (active === inputTypes.TO) {
       setTo(suggestion.description);
       setToID(suggestion.place_id);
     } else {
@@ -104,22 +109,26 @@ const Map = ({
         { description: from, coordinates: startCoordinates },
         { description: to, coordinates: endCoordinates }
       ]);
-      map.current.fitToCoordinates(
-        [ startCoordinates, endCoordinates ],
-        { edgePadding: { bottom: 120, top: 50 }}
-      );
+      if (Platform.OS === 'ios') {
+        map.current.fitToCoordinates(
+          [ startCoordinates, endCoordinates ],
+          { edgePadding: { bottom: 120, top: 50 }}
+        );
+      } else {
+        map.current.fitToElements(true);
+      }
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     }
   };
 
   const handleToChange = text => {
-    setActive('to');
+    setActive(inputTypes.TO);
     setTo(text);
     debouncedSearch(text);
   };
 
   const handleFromChange = text => {
-    setActive('from');
+    setActive(inputTypes.FROM);
     setFrom(text);
     debouncedSearch(text);
   };
@@ -155,12 +164,10 @@ const Map = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.overlay}>
           <View style={styles.absolute}>
-            { !!suggestions.length &&
-              <Suggestions
-                data={suggestions}
-                onPress={handleSuggestionPress}
-              />
-            }
+            <Suggestions
+              data={suggestions}
+              onPress={handleSuggestionPress}
+            />
             <InputBox
               to={to}
               from={from}
@@ -189,17 +196,17 @@ const styles = StyleSheet.create({
   },
   overlay: {
     position: 'relative',
-    elevation: 10,
     backgroundColor: '#ffffff',
   },
   absolute: {
-    position: 'absolute',
-    elevation: 10,
     backgroundColor: '#ffffff',
-    bottom: 8,
-    left: 8,
-    right: 8,
-    borderRadius: 4,
+    ...(Platform.OS === 'ios') && {
+      position: 'absolute',
+      bottom: 8,
+      left: 8,
+      right: 8,
+      borderRadius: 4
+    }
   },
 });
 

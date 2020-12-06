@@ -45,7 +45,7 @@ const History = ({
         data={history}
         renderItem={renderItem}
         ItemSeparatorComponent={Separator}
-        keyExtractor={item => `${item.from.placeId}-${item.to.placeId}`}
+        keyExtractor={(item, index) => `${index}`}
       />
       <TouchableOpacity
         disabled={!history.length}
